@@ -39,33 +39,49 @@ def salvar_no_google_sheets(novo_dado_dict):
 # --- INTERFACE PRINCIPAL ---
 def main():
     
-    # --- BARRA LATERAL (ADMIN) ---
+# --- BARRA LATERAL (ADMIN) ---
     with st.sidebar:
         st.header("🔒 Área Administrativa")
         senha_digitada = st.text_input("Senha de Acesso", type="password")
         
-        # Verifica se a senha bate com a que configuramos nos Secrets
-        if "SENHA_ADMIN" in st.secrets and senha_digitada == st.secrets["SENHA_ADMIN"]:
-            st.success("✅ Acesso Liberado")
+        # Botão para validar (ajuda a garantir que o enter foi processado)
+        validar = st.button("Acessar")
+
+        if validar or senha_digitada:
+            # Verifica se a senha existe nos Secrets
+            if "SENHA_ADMIN" not in st.secrets:
+                st.error("ERRO: A senha não foi configurada nos Secrets!")
             
-            df = get_data()
-            if not df.empty:
-                st.metric("Total de Cadastros", len(df))
-                st.dataframe(df)
+            # Verifica se a senha bate
+            elif senha_digitada == st.secrets["SENHA_ADMIN"]:
+                st.success("✅ Acesso Liberado")
                 
-                # Botão para Baixar CSV (Excel)
-                csv = df.to_csv(index=False).encode('utf-8')
-                st.download_button(
-                    "📥 Baixar Relatório em Excel",
-                    data=csv,
-                    file_name="relatorio_extrativistas.csv",
-                    mime="text/csv"
-                )
+                try:
+                    df = get_data()
+                    if not df.empty:
+                        st.write(f"📊 **{len(df)}** cadastros encontrados.")
+                        st.dataframe(df)
+                        
+                        csv = df.to_csv(index=False).encode('utf-8')
+                        st.download_button(
+                            "📥 Baixar Excel",
+                            data=csv,
+                            file_name="relatorio.csv",
+                            mime="text/csv"
+                        )
+                    else:
+                        st.warning("⚠️ Conectado, mas a planilha está vazia ou com nome errado.")
+                        st.info("Verifique se a aba da planilha chama 'Página1' ou 'Sheet1'.")
+                except Exception as e:
+                    st.error(f"Erro ao ler planilha: {e}")
+            
             else:
-                st.warning("A planilha ainda está vazia.")
-        
+                st.error("❌ Senha Incorreta!")
+                st.caption(f"Dica: A senha configurada nos Secrets é '{st.secrets['SENHA_ADMIN']}'") 
+                # (Remova a linha acima depois de testar por segurança!)
+
         st.markdown("---")
-        st.info("Sistema v2.1 - Conexão Nuvem ☁️")
+        st.info("Sistema v2.2 - Debug Mode 🐞")
 
     # --- CABEÇALHO DO FORMULÁRIO ---
     st.title("Cadastro de Extrativista 🌳")
@@ -184,4 +200,5 @@ def main():
                     st.warning("Verifique se a planilha está compartilhada corretamente com o email do robô (service account).")
 
 if __name__ == "__main__":
+
     main()
